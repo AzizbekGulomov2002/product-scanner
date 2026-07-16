@@ -4,9 +4,9 @@
 
 set -euo pipefail
 
-APP_DIR="${1:-/opt/product-searcher}"
+APP_DIR="${1:-/home/product-scanner}"
 SERVICE_NAME="searcher.service"
-RUN_USER="${RUN_USER:-www-data}"
+RUN_USER="${RUN_USER:-root}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Root bilan ishga tushiring: sudo $0 $APP_DIR"
@@ -15,17 +15,19 @@ fi
 
 if [ ! -f "$APP_DIR/scripts/run-searcher.sh" ]; then
   echo "Loyiha topilmadi: $APP_DIR"
+  echo "Masalan: sudo $0 /home/product-scanner"
   exit 1
 fi
 
 chmod +x "$APP_DIR/scripts/run-searcher.sh"
 mkdir -p "$APP_DIR/logs"
-chown -R "$RUN_USER:$RUN_USER" "$APP_DIR"
+chown -R "$RUN_USER:$RUN_USER" "$APP_DIR" || true
 
-# systemd unit — yo'llarni almashtirish
-sed "s|/opt/product-searcher|$APP_DIR|g" "$APP_DIR/deploy/searcher.service" \
-  | sed "s|User=www-data|User=$RUN_USER|" \
-  | sed "s|Group=www-data|Group=$RUN_USER|" \
+# systemd unit — replace placeholder path with real APP_DIR
+sed "s|/home/product-scanner|$APP_DIR|g; s|/opt/product-searcher|$APP_DIR|g" \
+  "$APP_DIR/deploy/searcher.service" \
+  | sed "s|User=root|User=$RUN_USER|; s|User=www-data|User=$RUN_USER|" \
+  | sed "s|Group=root|Group=$RUN_USER|; s|Group=www-data|Group=$RUN_USER|" \
   > "/etc/systemd/system/$SERVICE_NAME"
 
 systemctl daemon-reload
