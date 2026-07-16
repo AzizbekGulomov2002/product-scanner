@@ -27,7 +27,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").strip()
+# Same-server bot must hit gunicorn on 8888 via loopback (not public IP / not :8000)
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8888").strip().rstrip("/")
 LOADING_STICKER = os.getenv("TELEGRAM_LOADING_STICKER", "").strip()
 HOURGLASS_ANIMATION = "https://media.giphy.com/media/3oEjI6sIIiv02jQVNu/giphy.gif"
 
@@ -176,7 +177,12 @@ async def ai_search(message: Message, state: FSMContext):
                     return
                 result = resp.json()
     except httpx.ConnectError:
-        await message.answer("❌ Serverga ulanib bo'lmadi. `./run-server.sh` ishga tushiring.", reply_markup=main_menu())
+        logger.error("Backend unreachable: %s", BACKEND_URL)
+        await message.answer(
+            f"❌ Backend ishlamayapti.\nURL: {BACKEND_URL}\n"
+            f".env da BACKEND_URL=http://127.0.0.1:8888 qo'ying va searcher ni restart qiling.",
+            reply_markup=main_menu(),
+        )
         return
     except Exception as exc:
         logger.exception("AI search error")
@@ -242,8 +248,11 @@ async def handle_search(message: Message, state: FSMContext):
                 for product in data["products"]:
                     await send_product_result(message, product, client)
     except httpx.ConnectError:
-        await state.clear()
-        await message.answer("❌ Serverga ulanib bo'lmadi. `./run-server.sh` ishga tushiring.")
+        logger.error("Backend unreachable: %s", BACKEND_URL)
+        await message.answer(
+            f"❌ Backend ishlamayapti.\nURL: {BACKEND_URL}\n"
+            f".env: BACKEND_URL=http://127.0.0.1:8888"
+        )
         return
 
     await state.clear()
@@ -333,7 +342,8 @@ async def add_details(message: Message, state: FSMContext):
                 )
                 result = resp.json()
     except httpx.ConnectError:
-        await message.answer("❌ Serverga ulanib bo'lmadi.")
+        logger.error("Backend unreachable: %s", BACKEND_URL)
+        await message.answer(f"❌ Backend ishlamayapti: {BACKEND_URL}")
         return
 
     await state.clear()
@@ -388,7 +398,7 @@ async def fallback(message: Message, state: FSMContext):
 
 async def main():
     tg_bot = get_bot()
-    logger.info("Telegram bot ishga tushmoqda...")
+    logger.info("Telegram bot ishga tushmoqda... BACKEND_URL=%s", BACKEND_URL)
     await dp.start_polling(tg_bot)
 
 
