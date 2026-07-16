@@ -14,6 +14,12 @@ ALLOWED_HOSTS = [
     for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if h.strip()
 ]
+# The Telegram bot / gunicorn talk to each other over loopback, so these
+# must ALWAYS be allowed regardless of .env — otherwise Django returns an
+# HTML 400 (DisallowedHost) and the bot can't decode the response.
+for _loopback in ("127.0.0.1", "localhost", "0.0.0.0"):
+    if _loopback not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_loopback)
 
 INSTALLED_APPS = [
     "jazzmin",

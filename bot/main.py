@@ -77,6 +77,19 @@ def product_caption(product: dict) -> str:
     )
 
 
+def parse_json(resp: httpx.Response) -> dict | None:
+    """Safely parse a response body as JSON. Returns None on non-JSON
+    (e.g. Django HTML 400/500 pages) so the bot never crashes."""
+    try:
+        return resp.json()
+    except Exception:
+        logger.error(
+            "Non-JSON response %s from %s: %.200s",
+            resp.status_code, resp.request.url, resp.text,
+        )
+        return None
+
+
 async def fetch_image_bytes(client: httpx.AsyncClient, url: str) -> bytes | None:
     if not url.startswith("http"):
         url = BACKEND_URL.rstrip("/") + url
@@ -169,10 +182,13 @@ async def ai_search(message: Message, state: FSMContext):
                     "telegram_username": message.from_user.username or "",
                 }
                 resp = await client.post(f"{BACKEND_URL}/api/search/image/", files=files, data=data)
-                if resp.status_code != 200:
-                    await message.answer("❌ Server xatosi. Django ishlayaptimi?", reply_markup=main_menu())
+                result = parse_json(resp)
+                if resp.status_code != 200 or result is None:
+                    await message.answer(
+                        f"❌ Server xatosi (kod {resp.status_code}). Django ishlayaptimi?",
+                        reply_markup=main_menu(),
+                    )
                     return
-                result = resp.json()
     except httpx.ConnectError:
         logger.error("Backend unreachable: %s", BACKEND_URL)
         await message.answer(
@@ -235,7 +251,15 @@ async def handle_search(message: Message, state: FSMContext):
                     f"{BACKEND_URL}/api/products/lookup/",
                     params={"q": query},
                 )
-                data = resp.json()
+                data = parse_json(resp)
+
+                if data is None:
+                    await state.clear()
+                    await message.answer(
+                        f"❌ Server xatosi (kod {resp.status_code}). Keyinroq urinib ko'ring.",
+                        reply_markup=main_menu(),
+                    )
+                    return
 
                 if not data.get("found") or not data.get("products"):
                     await state.clear()
@@ -248,8 +272,14 @@ async def handle_search(message: Message, state: FSMContext):
         logger.error("Backend unreachable: %s", BACKEND_URL)
         await message.answer(
             f"❌ Backend ishlamayapti.\nURL: {BACKEND_URL}\n"
-            f".env: BACKEND_URL=http://127.0.0.1:8888"
+            f".env: BACKEND_URL=http://127.0.0.1:8888",
+            reply_markup=main_menu(),
         )
+        return
+    except Exception as exc:
+        logger.exception("Search error")
+        await state.clear()
+        await message.answer(f"❌ Xatolik: {exc}", reply_markup=main_menu())
         return
 
     await state.clear()
@@ -337,17 +367,23 @@ async def add_details(message: Message, state: FSMContext):
                     data=form_data,
                     files=files,
                 )
-                result = resp.json()
+                result = parse_json(resp) or {}
     except httpx.ConnectError:
         logger.error("Backend unreachable: %s", BACKEND_URL)
-        await message.answer(f"❌ Backend ishlamayapti: {BACKEND_URL}")
+        await message.answer(f"❌ Backend ishlamayapti: {BACKEND_URL}", reply_markup=main_menu())
+        return
+    except Exception as exc:
+        logger.exception("Create error")
+        await state.clear()
+        await message.answer(f"❌ Xatolik: {exc}", reply_markup=main_menu())
         return
 
     await state.clear()
 
     if resp.status_code == 201:
+        prod = result.get("product", {})
         await message.answer(
-            f"✅ Saqlandi!\n\n📦 {result['product']['name']}\n🆔 ID: {result['product']['external_id']}",
+            f"✅ Saqlandi!\n\n📦 {prod.get('name', name)}\n🆔 ID: {prod.get('external_id', external_id)}",
             reply_markup=main_menu(),
         )
     else:
