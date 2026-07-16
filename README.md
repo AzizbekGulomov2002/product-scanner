@@ -6,9 +6,7 @@
 
 ---
 
-## English
-
-### Overview
+## Overview
 
 **Product Scanner** is an end-to-end solution for **retail and warehouse** teams managing large product catalogs (designed for **55,000+ SKUs**). Staff can **find any product instantly** using:
 
@@ -199,7 +197,7 @@ Use `sample_data/` templates:
 |------|---------|
 | `products_template.xlsx` | Excel template |
 | `product_images_folder_example.zip` | Images by folder ID |
-| `IMPORT_GUIDE.md` | Full import guide (Uzbek) |
+| `IMPORT_GUIDE.md` | Full import guide |
 
 **Excel columns:** `external_id`, `name`, `barcode` (optional), `image_files` (optional)
 
@@ -259,124 +257,6 @@ Configured in `.env`:
 | `REALTIME_CONFIDENCE_MIN` | 0.72 | Camera — minimum |
 
 Barcode matches are always **100%** when the code exists in the database.
-
----
-
-## O'zbekcha
-
-### Umumiy ma'lumot
-
-**Product Scanner** — **retail va omborxona** korxonalari uchun mahsulotlarni tez topish tizimi. **55 000+ mahsulot** katalogi bilan ishlash uchun mo'ljallangan.
-
-Xodimlar mahsulotni quyidagilar orqali topadi:
-
-- **Shtrix-kod (barcode)**
-- **Rasm** (kamera yoki yuklangan foto)
-- **ID yoki nom**
-
-Tizimda **web ilova**, **Telegram bot** va **admin panel** mavjud.
-
----
-
-### Qanday muammoni hal qiladi?
-
-Katta savdo va omborxonalarda xodimlar mahsulotni topish uchun ERP da qidiradi yoki hamkasblaridan so'raydi. **Faqat rasm yoki barcode** bo'lganda bu sekin va samarasiz.
-
-### Yechim (yuqori → past daraja)
-
-1. **Katalog** — har mahsulot: ID, nom, barcode, bir nechta rasm
-2. **AI** — OpenCLIP embedding + pgvector vector qidiruv
-3. **Barcode** — aniq moslik (100%), AI dan oldin tekshiriladi
-4. **Interfeyslar** — web skanner, Telegram bot, REST API
-5. **Masshtab** — Excel+ZIP import, Celery orqali fon indekslash
-
----
-
-### Skrinshotlar
-
-**Web — ID / nom bo'yicha qidirish**
-
-![Web qidiruv](screenshots/web-search-by-id-name.png)
-
-**Telegram — rasm bo'yicha qidirish**
-
-![Rasm bo'yicha qidiruv](screenshots/search-by-image.png)
-
-**Kamera skanner — barcode**
-
-![Barcode skanner](screenshots/product-scanner-barcode.jpg)
-
----
-
-### Imkoniyatlar
-
-- **Web dashboard** — 3 ta tugma: qidirish, kamera, mahsulot qo'shish
-- **Realtime kamera** — fullscreen, barcode + AI
-- **Telegram bot** — ID / nom / rasm bo'yicha qidirish, mahsulot qo'shish
-- **Admin** — Jazzmin, bulk import, qidiruv tarixi, embedding reindex
-- **API** — boshqa tizimlar bilan integratsiya
-
----
-
-### Tez ishga tushirish
-
-```bash
-git clone https://github.com/AzizbekGulomov2002/product-scanner.git
-cd product-scanner
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-cp .env.example .env
-# TELEGRAM_BOT_TOKEN, PostgreSQL, Redis sozlang
-
-python manage.py migrate
-python manage.py create_admin
-
-make server    # Django
-make bot       # Telegram bot
-make worker    # Embedding worker
-```
-
----
-
-### Serverga joylash (bitta service)
-
-```bash
-sudo ./deploy/install-searcher.sh /opt/product-scanner
-sudo systemctl start searcher
-```
-
-Bitta `searcher.service` ichida: **Gunicorn :8888 + bot + Celery worker**.
-
----
-
-### Ommaviy import (55K mahsulot)
-
-`sample_data/` papkasidagi shablonlardan foydalaning:
-
-- `products_template.xlsx` — Excel shablon
-- `product_images_folder_example.zip` — rasm ZIP namunasi
-- `IMPORT_GUIDE.md` — batafsil qo'llanma
-
-**ZIP (tavsiya etiladi):**
-
-```
-001/
-  rasm1.jpg
-  rasm2.jpg
-002/
-  rasm1.jpg
-```
-
-Admin → **Bulk Import** → Excel + ZIP yuklang.
-
----
-
-### Texnologiyalar
-
-Django, PostgreSQL, pgvector, OpenCLIP, Celery, Redis, aiogram, pyzbar, Gunicorn.
 
 ---
 
