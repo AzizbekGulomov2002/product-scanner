@@ -65,15 +65,17 @@ class ProductAdmin(admin.ModelAdmin):
 
     @admin.action(description="Reindex embeddings for selected products")
     def reindex_embeddings(self, request, queryset):
-        from search.tasks import reindex_product_embeddings
+        from search.tasks import enqueue_image_embedding
+        from products.models import ProductImage
 
         count = 0
         for product in queryset:
-            reindex_product_embeddings.delay(product.id)
-            count += 1
+            for image_id in ProductImage.objects.filter(product=product).values_list("id", flat=True):
+                enqueue_image_embedding(image_id)
+                count += 1
         self.message_user(
             request,
-            f"Reindex queued for {count} product(s). Embedding status updates automatically.",
+            f"Reindex queued for {count} image(s). Embedding status updates automatically.",
         )
 
 
@@ -158,5 +160,15 @@ class ImportJobAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         if is_new and obj.status == "pending":
             from products.tasks import process_import_job
+            import threading
 
-            process_import_job.delay(obj.id)
+            job_id = obj.id
+
+            def _queue():
+                try:
+                    process_import_job.apply_async(args=[job_id], ignore_result=True)
+                except Exception:
+                    process_import_job.run(job_id)
+
+            threading.Thread(target=_queue, daemon=True).start()
+            self.message_user(request, f"Import #{job_id} queued in background.")
