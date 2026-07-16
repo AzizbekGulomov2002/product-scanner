@@ -16,7 +16,6 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InputMediaPhoto,
     Message,
-    URLInputFile,
 )
 from dotenv import load_dotenv
 
@@ -29,8 +28,6 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 # Same-server bot must hit gunicorn on 8888 via loopback (not public IP / not :8000)
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8888").strip().rstrip("/")
-LOADING_STICKER = os.getenv("TELEGRAM_LOADING_STICKER", "").strip()
-HOURGLASS_ANIMATION = "https://media.giphy.com/media/3oEjI6sIIiv02jQVNu/giphy.gif"
 
 STATUS_UZ = {
     "found": "Mahsulot topildi",
@@ -118,13 +115,13 @@ async def send_product_result(message: Message, product: dict, client: httpx.Asy
     await message.answer_media_group(media_group)
 
 
-async def send_loading(message: Message) -> Message:
+async def send_loading(message: Message) -> Message | None:
+    # No external network (giphy) — that froze the bot when the server
+    # couldn't reach giphy.com. Lightweight local text only.
     try:
-        if LOADING_STICKER:
-            return await message.answer_sticker(LOADING_STICKER)
-        return await message.answer_animation(URLInputFile(HOURGLASS_ANIMATION))
+        return await message.answer("⏳ Qidirilmoqda...")
     except Exception:
-        return await message.answer("⏳")
+        return None
 
 
 async def remove_loading(msg: Message | None):
@@ -397,9 +394,28 @@ async def fallback(message: Message, state: FSMContext):
 
 
 async def main():
+    import asyncio
+
     tg_bot = get_bot()
     logger.info("Telegram bot ishga tushmoqda... BACKEND_URL=%s", BACKEND_URL)
-    await dp.start_polling(tg_bot)
+
+    # Drop any stale webhook + pending backlog so a restarted bot doesn't
+    # replay old updates or fight a leftover instance.
+    try:
+        await tg_bot.delete_webhook(drop_pending_updates=True)
+    except Exception as exc:
+        logger.warning("delete_webhook failed: %s", exc)
+
+    # Keep the bot alive across transient errors (e.g. 409 Conflict from a
+    # duplicate instance during a service restart, or a network blip).
+    while True:
+        try:
+            await dp.start_polling(tg_bot, drop_pending_updates=True)
+        except Exception as exc:
+            logger.exception("Polling crashed, restarting in 5s: %s", exc)
+            await asyncio.sleep(5)
+        else:
+            break
 
 
 if __name__ == "__main__":
