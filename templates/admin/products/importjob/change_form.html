@@ -1,0 +1,19 @@
+{% extends "admin/change_form.html" %}
+{% block after_related_objects %}
+{% if original %}
+<div style="margin-top:20px;padding:16px;background:#f9f9f9;border-radius:8px;">
+  <h3>Import Progress</h3>
+  <div style="background:#ddd;border-radius:4px;height:24px;width:300px;">
+    <div style="background:#417690;height:24px;border-radius:4px;width:{{ original.progress_percent }}%;text-align:center;color:#fff;line-height:24px;">
+      {{ original.progress_percent }}%
+    </div>
+  </div>
+  <p>Status: <strong>{{ original.status }}</strong></p>
+  <p>Total rows: {{ original.total_rows }} | Created: {{ original.created_count }} | Updated: {{ original.updated_count }} | Errors: {{ original.error_count }} | Images: {{ original.images_loaded }}</p>
+  {% if original.error_log %}
+  <h4>Error Log</h4>
+  <pre style="background:#fff;padding:12px;max-height:300px;overflow:auto;">{{ original.error_log }}</pre>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

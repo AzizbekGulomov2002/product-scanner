@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mahsulot qo'shish</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #fff; min-height: 100vh; }
+    .container { max-width: 500px; margin: 0 auto; padding: 20px; }
+    .back { color: #94a3b8; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 16px; }
+    h1 { font-size: 1.4rem; margin-bottom: 8px; }
+    .step { color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; }
+    label { display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.9rem; }
+    input[type="text"], input[type="file"] {
+      width: 100%; padding: 14px; margin-bottom: 16px; border: 1px solid #334155;
+      border-radius: 10px; background: #1e293b; color: #fff; font-size: 1rem;
+    }
+    .preview { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+    button {
+      width: 100%; padding: 16px; background: #7c3aed; color: #fff; border: none;
+      border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .msg { margin-top: 16px; padding: 14px; border-radius: 10px; text-align: center; }
+    .msg.ok { background: #166534; }
+    .msg.err { background: #7f1d1d; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back">← Bosh sahifa</a>
+    <h1>Bazaga mahsulot</h1>
+    <p class="step" id="stepLabel">1-qadam: Rasmlarni yuklang</p>
+
+    <div id="step1">
+      <label>Rasmlar (bir nechta tanlash mumkin)</label>
+      <input type="file" id="images" accept="image/*" multiple onchange="previewImages()">
+      <div class="preview" id="preview"></div>
+      <button onclick="goStep2()" id="nextBtn" disabled>Keyingi</button>
+    </div>
+
+    <div id="step2" class="hidden">
+      <label>ID (external_id) *</label>
+      <input type="text" id="externalId" placeholder="masalan: 001">
+
+      <label>Nomi *</label>
+      <input type="text" id="name" placeholder="Mahsulot nomi">
+
+      <label>Barcode (ixtiyoriy)</label>
+      <input type="text" id="barcode" placeholder="1234567890">
+
+      <button onclick="submitProduct()" id="submitBtn">Saqlash</button>
+    </div>
+
+    <div id="msg" class="msg hidden"></div>
+  </div>
+
+  <script>
+    let selectedFiles = [];
+
+    function previewImages() {
+      const input = document.getElementById('images');
+      selectedFiles = Array.from(input.files);
+      const preview = document.getElementById('preview');
+      preview.innerHTML = '';
+      selectedFiles.forEach(f => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        preview.appendChild(img);
+      });
+      document.getElementById('nextBtn').disabled = selectedFiles.length === 0;
+    }
+
+    function goStep2() {
+      if (!selectedFiles.length) return;
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
+      document.getElementById('stepLabel').textContent = '2-qadam: ID va nom kiriting';
+    }
+
+    async function submitProduct() {
+      const externalId = document.getElementById('externalId').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const barcode = document.getElementById('barcode').value.trim();
+      const msgEl = document.getElementById('msg');
+
+      if (!externalId || !name) {
+        showMsg('ID va nom majburiy', false);
+        return;
+      }
+
+      const form = new FormData();
+      form.append('external_id', externalId);
+      form.append('name', name);
+      form.append('barcode', barcode);
+      selectedFiles.forEach(f => form.append('images', f));
+
+      document.getElementById('submitBtn').disabled = true;
+
+      try {
+        const resp = await fetch('/api/products/create/', { method: 'POST', body: form });
+        const data = await resp.json();
+        if (resp.ok) {
+          showMsg('✅ Mahsulot saqlandi: ' + data.product.name, true);
+          setTimeout(() => window.location.href = '/', 2000);
+        } else {
+          showMsg('❌ ' + (data.error || 'Xatolik'), false);
+          document.getElementById('submitBtn').disabled = false;
+        }
+      } catch (e) {
+        showMsg('❌ Tarmoq xatosi', false);
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function showMsg(text, ok) {
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = 'msg ' + (ok ? 'ok' : 'err');
+      el.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

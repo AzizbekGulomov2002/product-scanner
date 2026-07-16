@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Searcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --purple: #6C2BD9;
+      --purple-dark: #5521B5;
+      --purple-light: #EDE9FE;
+      --purple-soft: #F5F3FF;
+      --navy: #1E1B4B;
+      --text: #6B7280;
+      --white: #FFFFFF;
+      --yellow: #FBBF24;
+      --teal: #2DD4BF;
+      --blue: #60A5FA;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--white);
+      color: var(--navy);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background decorations */
+    .blob-top {
+      position: fixed; top: -120px; right: -80px;
+      width: 520px; height: 520px;
+      background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%);
+      border-radius: 50% 40% 60% 50%;
+      z-index: 0; pointer-events: none;
+    }
+    .blob-bottom {
+      position: fixed; bottom: -100px; left: -60px;
+      width: 300px; height: 300px;
+      background: var(--purple-soft);
+      border-radius: 60% 40% 50% 50%;
+      z-index: 0; pointer-events: none;
+    }
+    .dot { position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; }
+    .dot-1 { width: 12px; height: 12px; background: var(--yellow); top: 18%; left: 8%; }
+    .dot-2 { width: 8px; height: 8px; background: var(--teal); top: 32%; right: 12%; }
+    .dot-3 { width: 10px; height: 10px; background: var(--blue); bottom: 28%; left: 15%; }
+    .tri {
+      position: fixed; width: 0; height: 0; z-index: 0; pointer-events: none;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 10px solid var(--yellow);
+    }
+    .tri-1 { top: 22%; right: 22%; transform: rotate(25deg); }
+    .tri-2 { bottom: 35%; right: 8%; transform: rotate(-15deg); border-bottom-color: var(--teal); }
+
+    /* Nav */
+    .nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px; max-width: 1200px; margin: 0 auto;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.1rem; color: var(--navy);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 36px; height: 36px; background: var(--purple);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 1rem;
+    }
+    .nav-admin {
+      padding: 10px 22px; border: 2px solid var(--purple);
+      border-radius: 999px; color: var(--purple); font-weight: 600;
+      font-size: 0.9rem; text-decoration: none; transition: all 0.2s;
+    }
+    .nav-admin:hover { background: var(--purple); color: white; }
+
+    /* Hero */
+    .hero {
+      position: relative; z-index: 1;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+      align-items: center; max-width: 1200px; margin: 0 auto;
+      padding: 40px 40px 80px; min-height: calc(100vh - 80px);
+    }
+
+    .hero-text h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800; line-height: 1.15;
+      color: var(--navy); margin-bottom: 20px;
+    }
+    .hero-text h1 span { color: var(--purple); }
+
+    .hero-text p {
+      font-size: 1.05rem; line-height: 1.7;
+      color: var(--text); margin-bottom: 36px; max-width: 440px;
+    }
+
+    /* Action buttons */
+    .actions { display: flex; flex-direction: column; gap: 14px; max-width: 380px; }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px 24px; border-radius: 999px;
+      font-size: 1rem; font-weight: 600;
+      text-decoration: none; transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .btn-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: var(--purple); color: white;
+      box-shadow: 0 8px 24px rgba(108, 43, 217, 0.3);
+    }
+    .btn-primary:hover { background: var(--purple-dark); transform: translateY(-2px); }
+    .btn-primary .btn-icon { background: rgba(255,255,255,0.2); }
+
+    .btn-outline {
+      background: white; color: var(--purple);
+      border-color: var(--purple);
+    }
+    .btn-outline:hover { background: var(--purple-soft); transform: translateY(-2px); }
+    .btn-outline .btn-icon { background: var(--purple-light); }
+
+    .btn-soft {
+      background: var(--purple-soft); color: var(--purple-dark);
+      border-color: transparent;
+    }
+    .btn-soft:hover { background: var(--purple-light); transform: translateY(-2px); }
+    .btn-soft .btn-icon { background: white; }
+
+    /* Illustration */
+    .hero-visual {
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+
+    .visual-card {
+      width: 100%; max-width: 420px; aspect-ratio: 1;
+      background: linear-gradient(145deg, #F5F3FF 0%, #EDE9FE 50%, #DDD6FE 100%);
+      border-radius: 32px; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 20px 60px rgba(108, 43, 217, 0.12);
+      overflow: hidden;
+    }
+
+    .visual-inner {
+      text-align: center; padding: 32px;
+    }
+    .visual-icon {
+      font-size: 5rem; margin-bottom: 16px;
+      filter: drop-shadow(0 8px 16px rgba(108,43,217,0.2));
+    }
+    .visual-label {
+      font-size: 1.1rem; font-weight: 700; color: var(--purple-dark);
+    }
+    .visual-sub { font-size: 0.85rem; color: var(--text); margin-top: 6px; }
+
+    .scan-ring {
+      position: absolute; border: 3px solid rgba(108,43,217,0.25);
+      border-radius: 50%; animation: pulse 3s ease-in-out infinite;
+    }
+    .ring-1 { width: 80%; height: 80%; }
+    .ring-2 { width: 60%; height: 60%; animation-delay: 0.5s; border-color: rgba(108,43,217,0.15); }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.04); opacity: 0.7; }
+    }
+
+    .float-badge {
+      position: absolute; background: white; border-radius: 16px;
+      padding: 10px 16px; font-size: 0.8rem; font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08); color: var(--navy);
+    }
+    .badge-1 { top: 12%; right: -8%; }
+    .badge-2 { bottom: 15%; left: -6%; color: var(--purple); }
+
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; padding: 24px 20px 60px; gap: 32px; }
+      .nav { padding: 16px 20px; }
+      .hero-visual { order: -1; }
+      .visual-card { max-width: 280px; margin: 0 auto; }
+      .actions { max-width: 100%; }
+      .float-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="blob-top"></div>
+  <div class="blob-bottom"></div>
+  <div class="dot dot-1"></div>
+  <div class="dot dot-2"></div>
+  <div class="dot dot-3"></div>
+  <div class="tri tri-1"></div>
+  <div class="tri tri-2"></div>
+
+  <nav class="nav">
+    <a href="/" class="logo">
+      <div class="logo-icon">🔍</div>
+      Product Searcher
+    </a>
+    <a href="/admin/" class="nav-admin">Admin</a>
+  </nav>
+
+  <main class="hero">
+    <div class="hero-text">
+      <div class="actions">
+        <a href="/search/" class="btn btn-primary">
+          ID / Nom bo'yicha qidirish
+        </a>
+        <a href="/scanner/" class="btn btn-outline">
+          Kamera skanner
+        </a>
+        <a href="/add/" class="btn btn-outline">
+          Bazaga mahsulot
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="visual-card">
+        <div class="scan-ring ring-1"></div>
+        <div class="scan-ring ring-2"></div>
+        <div class="visual-inner">
+          <div class="visual-icon">📦</div>
+          <div class="visual-label">AI Product Vision</div>
+          <div class="visual-sub">Rasm • Barcode • ID</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

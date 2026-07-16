@@ -1,0 +1,17 @@
+.env
+.env.local
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+media/
+staticfiles/
+*.sqlite3
+.DS_Store
+.idea/
+.vscode/
+*.log
+logs/
+celerybeat-schedule
+imgs/

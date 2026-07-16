@@ -1,0 +1,77 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Bulk Import</h1>
+<p>Upload Excel/CSV file and optional ZIP with product images.</p>
+
+<h3>Excel format</h3>
+<pre style="background:#f5f5f5;padding:12px;border-radius:4px;">
+external_id | name   | barcode      | image_files (optional)
+205         | Qalam  | 1234567890   | 205_1.jpg,205_2.jpg
+</pre>
+
+<h3>ZIP structure (folder by ID)</h3>
+<pre style="background:#f5f5f5;padding:12px;border-radius:4px;">
+product_images.zip
+├── 205/
+│   ├── front.jpg
+│   ├── back.jpg
+│   └── side.jpg
+└── 206/
+    └── front.jpg
+</pre>
+
+<form method="post" enctype="multipart/form-data" action="{% url 'admin:products_importjob_add' %}">
+  {% csrf_token %}
+  <table>
+    <tr>
+      <td><label>Excel/CSV file:</label></td>
+      <td><input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required></td>
+    </tr>
+    <tr>
+      <td><label>Images ZIP (optional):</label></td>
+      <td><input type="file" name="zip_file" accept=".zip"></td>
+    </tr>
+    <tr>
+      <td><label>Mode:</label></td>
+      <td>
+        <select name="mode">
+          <option value="create_update">Create or Update</option>
+          <option value="create">Create Only</option>
+          <option value="update">Update Only</option>
+        </select>
+      </td>
+    </tr>
+  </table>
+  <p><input type="submit" value="Start Import" class="button default"></p>
+</form>
+
+<h2>Recent Import Jobs</h2>
+<table style="width:100%;border-collapse:collapse;">
+  <thead>
+    <tr style="background:#f5f5f5;">
+      <th style="padding:8px;text-align:left;">ID</th>
+      <th style="padding:8px;text-align:left;">Status</th>
+      <th style="padding:8px;text-align:left;">Progress</th>
+      <th style="padding:8px;text-align:left;">Created</th>
+      <th style="padding:8px;text-align:left;">Updated</th>
+      <th style="padding:8px;text-align:left;">Errors</th>
+      <th style="padding:8px;text-align:left;">Images</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for job in recent_jobs %}
+    <tr style="border-bottom:1px solid #eee;">
+      <td style="padding:8px;"><a href="{% url 'admin:products_importjob_change' job.id %}">#{{ job.id }}</a></td>
+      <td style="padding:8px;">{{ job.status }}</td>
+      <td style="padding:8px;">{{ job.progress_percent }}%</td>
+      <td style="padding:8px;">{{ job.created_count }}</td>
+      <td style="padding:8px;">{{ job.updated_count }}</td>
+      <td style="padding:8px;">{{ job.error_count }}</td>
+      <td style="padding:8px;">{{ job.images_loaded }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="padding:8px;">No import jobs yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

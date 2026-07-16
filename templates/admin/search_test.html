@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Search Test</h1>
+<p>Upload an image to test product search without Telegram bot.</p>
+
+<form id="searchForm" enctype="multipart/form-data" style="margin:20px 0;">
+  {% csrf_token %}
+  <input type="file" name="image" id="imageInput" accept="image/*" required>
+  <button type="submit" class="button default">Search</button>
+</form>
+
+<div id="result" style="display:none;background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;margin-top:20px;">
+  <h2 id="statusLabel"></h2>
+  <p id="confidence"></p>
+  <p id="method"></p>
+  <div id="matches"></div>
+</div>
+
+<script>
+document.getElementById('searchForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData();
+  formData.append('image', document.getElementById('imageInput').files[0]);
+
+  const resp = await fetch('/api/search/test/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+    body: formData,
+  });
+  const data = await resp.json();
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('statusLabel').textContent = data.status_label;
+  document.getElementById('confidence').textContent = 'Confidence: ' + data.confidence_percent + '%';
+  document.getElementById('method').textContent = 'Method: ' + data.method;
+
+  let html = '<h3>Matches</h3><ul>';
+  (data.matches || []).forEach(m => {
+    html += `<li><strong>${m.name}</strong> (ID: ${m.external_id}) — ${m.similarity_percent}%</li>`;
+  });
+  html += '</ul>';
+  document.getElementById('matches').innerHTML = html;
+});
+</script>
+{% endblock %}

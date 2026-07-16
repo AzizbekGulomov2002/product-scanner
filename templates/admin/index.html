@@ -1,0 +1,12 @@
+{% extends "admin/index.html" %}
+{% block content %}
+<div style="margin-bottom:24px;padding:16px;background:#417690;color:#fff;border-radius:8px;">
+  <h2 style="margin:0 0 12px;color:#fff;">Quick Links</h2>
+  <a href="{% url 'admin:dashboard' %}" style="color:#fff;margin-right:16px;">📊 Dashboard</a>
+  <a href="{% url 'admin:bulk-import' %}" style="color:#fff;margin-right:16px;">📥 Bulk Import</a>
+  <a href="{% url 'admin:search-test' %}" style="color:#fff;margin-right:16px;">🔍 Search Test</a>
+  <a href="/" target="_blank" style="color:#fff;margin-right:16px;">🏠 App Dashboard</a>
+  <a href="/scanner/" target="_blank" style="color:#fff;">📷 Realtime Scanner</a>
+</div>
+{{ block.super }}
+{% endblock %}

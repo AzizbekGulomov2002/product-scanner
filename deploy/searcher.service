@@ -1,0 +1,33 @@
+[Unit]
+Description=Product Searcher — Gunicorn + Telegram Bot
+Documentation=file:///opt/product-searcher/README.md
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+# Redis/PostgreSQL boshqa serverda bo'lsa, yuqoridagi After qatorlarini o'chiring
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# Loyiha yo'lini o'z serveringizga moslang:
+WorkingDirectory=/opt/product-searcher
+
+EnvironmentFile=-/opt/product-searcher/.env
+Environment=GUNICORN_BIND=0.0.0.0:8888
+Environment=GUNICORN_WORKERS=2
+Environment=GUNICORN_TIMEOUT=120
+
+ExecStart=/opt/product-searcher/scripts/run-searcher.sh
+
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
+
+# Loglar
+StandardOutput=append:/opt/product-searcher/logs/service.log
+StandardError=append:/opt/product-searcher/logs/service-error.log
+
+[Install]
+WantedBy=multi-user.target

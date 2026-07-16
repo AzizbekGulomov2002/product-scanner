@@ -1,0 +1,40 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin:24px 0;">
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;">{{ stats.total_products }}</div>
+    <div style="color:#666;">Total Products</div>
+  </div>
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;">{{ stats.total_images }}</div>
+    <div style="color:#666;">Total Images</div>
+  </div>
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;color:{% if stats.without_embedding %}#e65100{% else %}#2e7d32{% endif %};">{{ stats.without_embedding }}</div>
+    <div style="color:#666;">Images Without Embedding</div>
+  </div>
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;">{{ stats.today_searches }}</div>
+    <div style="color:#666;">Today's Searches</div>
+  </div>
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;color:#2e7d32;">{{ stats.found_today }}</div>
+    <div style="color:#666;">Found Today</div>
+  </div>
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;color:#c62828;">{{ stats.not_found_today }}</div>
+    <div style="color:#666;">Not Found Today</div>
+  </div>
+  <div style="background:#fff;padding:20px;border-radius:8px;border:1px solid #ddd;">
+    <div style="font-size:32px;font-weight:bold;">{{ stats.avg_confidence }}%</div>
+    <div style="color:#666;">Average Confidence</div>
+  </div>
+</div>
+<p>
+  <a href="{% url 'admin:bulk-import' %}" class="button">Bulk Import</a>
+  <a href="{% url 'admin:search-test' %}" class="button">Search Test</a>
+  <a href="/" class="button" target="_blank">App Dashboard</a>
+  <a href="/scanner/" class="button" target="_blank">Realtime Scanner</a>
+</p>
+{% endblock %}
