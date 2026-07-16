@@ -166,7 +166,7 @@ class ImportService:
         )
 
     def _queue_embeddings(self):
-        from search.tasks import generate_image_embedding
+        from search.tasks import enqueue_image_embedding
 
         for image in ProductImage.objects.filter(has_embedding=False).order_by("-id")[:5000]:
-            generate_image_embedding.delay(image.id)
+            enqueue_image_embedding(image.id)

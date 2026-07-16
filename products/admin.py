@@ -71,7 +71,10 @@ class ProductAdmin(admin.ModelAdmin):
         for product in queryset:
             reindex_product_embeddings.delay(product.id)
             count += 1
-        self.message_user(request, f"Reindex queued for {count} product(s).")
+        self.message_user(
+            request,
+            f"Reindex queued for {count} product(s). Embedding status updates automatically.",
+        )
 
 
 @admin.register(ProductImage)
@@ -84,11 +87,14 @@ class ProductImageAdmin(admin.ModelAdmin):
 
     @admin.action(description="Generate embeddings for selected images")
     def generate_embeddings(self, request, queryset):
-        from search.tasks import generate_image_embedding
+        from search.tasks import enqueue_image_embedding
 
         for image in queryset:
-            generate_image_embedding.delay(image.id)
-        self.message_user(request, f"Embedding generation queued for {queryset.count()} image(s).")
+            enqueue_image_embedding(image.id)
+        self.message_user(
+            request,
+            f"Embedding queued for {queryset.count()} image(s). Status updates when done.",
+        )
 
 
 @admin.register(ImportJob)
