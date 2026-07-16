@@ -32,6 +32,7 @@ fi
 PORT="${GUNICORN_PORT:-8888}"
 BIND="${GUNICORN_BIND:-0.0.0.0:${PORT}}"
 WORKERS="${GUNICORN_WORKERS:-1}"
+THREADS="${GUNICORN_THREADS:-4}"
 TIMEOUT="${GUNICORN_TIMEOUT:-180}"
 
 PIDS=()
@@ -46,10 +47,14 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT EXIT
 
-echo "==> Gunicorn: http://${BIND}"
+echo "==> Gunicorn (gthread): http://${BIND}"
+# gthread => bitta process, ko'p thread. Bitta sekin so'rov (skanner/embedding)
+# boshqa so'rovlarni (admin Save) bloklamaydi. CLIP modeli faqat 1 marta yuklanadi.
 gunicorn config.wsgi:application \
   --bind "$BIND" \
   --workers "$WORKERS" \
+  --worker-class gthread \
+  --threads "$THREADS" \
   --timeout "$TIMEOUT" \
   --access-logfile "$ROOT/logs/gunicorn-access.log" \
   --error-logfile "$ROOT/logs/gunicorn-error.log" \
@@ -57,9 +62,13 @@ gunicorn config.wsgi:application \
   --enable-stdio-inheritance &
 PIDS+=($!)
 
-if [ "${CELERY_TASK_ALWAYS_EAGER:-False}" = "False" ] || [ "${CELERY_TASK_ALWAYS_EAGER:-false}" = "false" ]; then
+# Celery worker faqat EAGER=False bo'lganda (alohida process = qo'shimcha CLIP nusxa).
+# 2GB serverda EAGER=True tavsiya etiladi — embedding gunicorn ichida thread da ishlaydi,
+# CLIP modeli bitta nusxa bo'lib, OOM/swap bo'lmaydi.
+EAGER="$(printf '%s' "${CELERY_TASK_ALWAYS_EAGER:-False}" | tr '[:upper:]' '[:lower:]')"
+if [ "$EAGER" != "true" ] && [ "$EAGER" != "1" ] && [ "$EAGER" != "yes" ]; then
   echo "==> Celery worker"
-  celery -A config worker -l info --concurrency=1 \
+  celery -A config worker -l info --concurrency=1 --max-tasks-per-child=20 \
     >> "$ROOT/logs/celery.log" 2>&1 &
   PIDS+=($!)
 fi

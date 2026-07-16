@@ -13,6 +13,7 @@ WorkingDirectory=/home/product-scanner
 EnvironmentFile=-/home/product-scanner/.env
 Environment=GUNICORN_BIND=0.0.0.0:8888
 Environment=GUNICORN_WORKERS=1
+Environment=GUNICORN_THREADS=4
 Environment=GUNICORN_TIMEOUT=180
 
 ExecStart=/home/product-scanner/scripts/run-searcher.sh
