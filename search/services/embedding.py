@@ -47,6 +47,39 @@ class EmbeddingService:
 
         return features.cpu().numpy().flatten().astype(np.float32)
 
+    @staticmethod
+    def _build_query_views(image: Image.Image) -> list[Image.Image]:
+        """Test-time augmentation: several views of the query so the same
+        product photographed from another angle / framing still matches.
+        Each view is compared with the DB and the MAX similarity is kept."""
+        width, height = image.size
+        views = [image]
+
+        for ratio in (0.85, 0.65):
+            cw = max(1, int(width * ratio))
+            ch = max(1, int(height * ratio))
+            left = (width - cw) // 2
+            top = (height - ch) // 2
+            views.append(image.crop((left, top, left + cw, top + ch)))
+
+        # Horizontal flip of the full image — helps mirror-angle shots.
+        views.append(image.transpose(Image.FLIP_LEFT_RIGHT))
+        return views
+
+    def embed_image_views(self, image_input) -> np.ndarray:
+        """Return an (K, dim) array of normalized embeddings for K augmented
+        views of the query image (single batched forward pass)."""
+        self._load_model()
+        image = to_pil_image(image_input)
+        views = self._build_query_views(image)
+
+        batch = torch.stack([self.preprocess(v) for v in views]).to(self.device)
+        with torch.no_grad():
+            features = self.model.encode_image(batch)
+            features = features / features.norm(dim=-1, keepdim=True)
+
+        return features.cpu().numpy().astype(np.float32)
+
     def embed_text(self, text: str) -> np.ndarray:
         self._load_model()
         tokens = self.tokenizer([text]).to(self.device)

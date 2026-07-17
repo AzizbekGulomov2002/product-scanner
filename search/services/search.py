@@ -51,11 +51,13 @@ class SearchService:
                 barcode_result["method"] = "barcode"
                 return barcode_result
 
-        embedding = self.embedding_service.embed_image(image_input)
-        results = self._vector_search(embedding)
+        embeddings = self.embedding_service.embed_image_views(image_input)
+        results = self._vector_search_multi(embeddings)
 
         if strict is None:
-            strict = source not in ("admin",)
+            # Show "probable" candidates (with a warning) instead of a blunt
+            # "not found". The gap check still filters ambiguous cases.
+            strict = False
 
         response = self._build_response(results, method="image_embedding", strict=strict)
         response["detected_barcode"] = barcode or ""
@@ -217,6 +219,37 @@ class SearchService:
             current = by_product.get(product.id)
             if current is None or sim > current["similarity"]:
                 by_product[product.id] = {"product": product, "similarity": sim}
+
+        ranked = sorted(by_product.values(), key=lambda item: item["similarity"], reverse=True)
+        return ranked[:top_k]
+
+    def _vector_search_multi(self, embeddings, top_k=None):
+        """Search with several query embeddings (TTA views) and keep, for
+        each product, the BEST similarity across all views. This boosts
+        recall for the same product seen from another angle without lowering
+        the bar for genuinely different products."""
+        top_k = top_k or settings.SEARCH_TOP_K
+        raw_k = max(top_k * 6, 20)
+
+        by_product: dict[int, dict] = {}
+        for embedding in embeddings:
+            qs = (
+                ImageEmbedding.objects
+                .annotate(distance=CosineDistance("embedding", embedding.tolist()))
+                .annotate(similarity=1 - F("distance"))
+                .select_related("product_image__product")
+                .order_by("distance")[:raw_k]
+            )
+            for emb in qs:
+                product = emb.product_image.product
+                sim = float(emb.similarity)
+                current = by_product.get(product.id)
+                if current is None or sim > current["similarity"]:
+                    by_product[product.id] = {
+                        "product": product,
+                        "similarity": sim,
+                        "image_id": emb.product_image_id,
+                    }
 
         ranked = sorted(by_product.values(), key=lambda item: item["similarity"], reverse=True)
         return ranked[:top_k]

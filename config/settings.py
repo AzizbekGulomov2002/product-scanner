@@ -129,9 +129,12 @@ CELERY_TASK_SOFT_TIME_LIMIT = 300
 CELERY_TASK_TIME_LIMIT = 360
 
 # Search settings
-CONFIDENCE_HIGH = float(os.getenv("CONFIDENCE_HIGH", "0.88"))
-CONFIDENCE_MEDIUM = float(os.getenv("CONFIDENCE_MEDIUM", "0.82"))
-CONFIDENCE_MIN_GAP = float(os.getenv("CONFIDENCE_MIN_GAP", "0.06"))
+# Tuned for ViT-B-32 instance retrieval with query-side TTA. Same product
+# from another angle typically lands ~0.78-0.90; different products rarely
+# clear ~0.74 for the best-matching view.
+CONFIDENCE_HIGH = float(os.getenv("CONFIDENCE_HIGH", "0.84"))
+CONFIDENCE_MEDIUM = float(os.getenv("CONFIDENCE_MEDIUM", "0.74"))
+CONFIDENCE_MIN_GAP = float(os.getenv("CONFIDENCE_MIN_GAP", "0.05"))
 REALTIME_CONFIDENCE_HIGH = float(os.getenv("REALTIME_CONFIDENCE_HIGH", "0.80"))
 REALTIME_CONFIDENCE_MIN = float(os.getenv("REALTIME_CONFIDENCE_MIN", "0.72"))
 REALTIME_CONFIDENCE_MIN_GAP = float(os.getenv("REALTIME_CONFIDENCE_MIN_GAP", "0.04"))
