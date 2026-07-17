@@ -2,7 +2,6 @@ import logging
 import threading
 
 from celery import shared_task
-from django.conf import settings
 from django.db import close_old_connections
 
 from products.models import ProductImage
@@ -10,6 +9,10 @@ from search.models import ImageEmbedding
 from search.services.embedding import get_embedding_service
 
 logger = logging.getLogger(__name__)
+
+# Serialize CLIP inference so we never load/run several models at once on a
+# small (2GB) server. One embedding at a time = bounded memory, no OOM.
+_embedding_lock = threading.Semaphore(1)
 
 
 def generate_image_embedding_sync(product_image_id: int) -> None:
@@ -34,36 +37,33 @@ def generate_image_embedding_sync(product_image_id: int) -> None:
         )
         ProductImage.objects.filter(pk=image_obj.pk).update(has_embedding=True)
         logger.info("Embedding generated for ProductImage %s", product_image_id)
+    except Exception:
+        # Never swallow silently — a stuck "Pending" image must be diagnosable.
+        logger.exception("Embedding FAILED for ProductImage %s", product_image_id)
+        raise
     finally:
         close_old_connections()
 
 
 def enqueue_image_embedding(product_image_id: int) -> None:
     """
-    MUST return instantly — never call Redis/Celery/CLIP on the HTTP thread.
-    Redis .delay() can hang for minutes if broker is down; that froze admin Save.
+    MUST return instantly — never call CLIP/Redis on the HTTP thread.
+
+    Embedding runs in an in-process daemon thread inside gunicorn. We do NOT
+    depend on Celery/Redis here: if the broker is down or no worker is
+    consuming, images would otherwise stay "Pending" forever. A semaphore
+    keeps only one CLIP inference running at a time (memory-safe).
     """
 
     def _background():
-        close_old_connections()
-        try:
-            if not settings.CELERY_TASK_ALWAYS_EAGER:
-                try:
-                    generate_image_embedding.apply_async(
-                        args=[product_image_id],
-                        ignore_result=True,
-                    )
-                    logger.info("Embedding queued in Celery for ProductImage %s", product_image_id)
-                    return
-                except Exception as exc:
-                    logger.warning(
-                        "Celery enqueue failed for %s (%s) — running in this thread",
-                        product_image_id,
-                        exc,
-                    )
-            generate_image_embedding_sync(product_image_id)
-        finally:
+        with _embedding_lock:
             close_old_connections()
+            try:
+                generate_image_embedding_sync(product_image_id)
+            except Exception:
+                pass  # already logged with traceback
+            finally:
+                close_old_connections()
 
     threading.Thread(
         target=_background,
