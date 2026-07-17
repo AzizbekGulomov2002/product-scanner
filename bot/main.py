@@ -29,12 +29,6 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 # Same-server bot must hit gunicorn on 8888 via loopback (not public IP / not :8000)
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8888").strip().rstrip("/")
 
-STATUS_UZ = {
-    "found": "Mahsulot topildi",
-    "probable": "Taxminiy natija",
-    "not_found": "Mahsulot topilmadi",
-}
-
 bot = None
 dp = Dispatcher(storage=MemoryStorage())
 
@@ -406,11 +400,9 @@ async def send_ai_result(message: Message, data: dict):
         return
 
     top = matches[0]
-    emoji = "✅" if status == "found" else "⚠️"
-    label = STATUS_UZ.get(status, status)
 
     text = (
-        f"{emoji} {label}\n\n"
+        f"✅ Mahsulot topildi\n\n"
         f"📦 Nomi: {top['name']}\n"
         f"🆔 ID: {top['external_id']}\n"
         f"📊 Moslik: {top['similarity_percent']}%"

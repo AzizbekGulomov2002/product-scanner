@@ -303,13 +303,8 @@
           : 'Moslik: ' + match.similarity_percent + '%';
 
       const statusEl = document.getElementById('resultStatus');
-      if (data.status === 'found') {
-        statusEl.textContent = 'Topildi';
-        statusEl.className = 'result-status status-found';
-      } else {
-        statusEl.textContent = 'Ehtimoliy mos';
-        statusEl.className = 'result-status status-probable';
-      }
+      statusEl.textContent = 'Topildi';
+      statusEl.className = 'result-status status-found';
     }
 
     startCamera();
